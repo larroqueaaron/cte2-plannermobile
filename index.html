@@ -142,5 +142,69 @@
         </div>
     </div>
 </div>
+<script>
+(function () {
+    let touchStartTarget = null;
+    let touchStartX = 0;
+    let touchStartY = 0;
+
+    const findClickableTarget = (x, y) => {
+        const rawTarget = document.elementFromPoint(x, y);
+        if (!rawTarget) return null;
+        return rawTarget.closest(".talent-node, #ascendancy-menu div, button");
+    };
+
+    const fireMouseEvent = (target, type, touch) => {
+        target.dispatchEvent(new MouseEvent(type, {
+            bubbles: true,
+            cancelable: true,
+            view: window,
+            button: 0,
+            buttons: type === "mouseup" ? 0 : 1,
+            clientX: touch.clientX,
+            clientY: touch.clientY
+        }));
+    };
+
+    document.addEventListener("touchstart", function (event) {
+        if (event.touches.length !== 1) return;
+
+        const touch = event.touches[0];
+        const target = findClickableTarget(touch.clientX, touch.clientY);
+        if (!target) return;
+
+        touchStartTarget = target;
+        touchStartX = touch.clientX;
+        touchStartY = touch.clientY;
+
+        event.preventDefault();
+        fireMouseEvent(target, "mousedown", touch);
+    }, { passive: false });
+
+    document.addEventListener("touchend", function (event) {
+        if (!touchStartTarget) return;
+
+        const touch = event.changedTouches[0];
+        const moved = Math.hypot(
+            touch.clientX - touchStartX,
+            touch.clientY - touchStartY
+        );
+
+        const target = findClickableTarget(touch.clientX, touch.clientY) || touchStartTarget;
+
+        if (moved < 20) {
+            event.preventDefault();
+            fireMouseEvent(target, "mouseup", touch);
+            fireMouseEvent(target, "click", touch);
+        }
+
+        touchStartTarget = null;
+    }, { passive: false });
+
+    document.addEventListener("touchcancel", () => {
+        touchStartTarget = null;
+    });
+})();
+</script>    
 </body>
 </html>
